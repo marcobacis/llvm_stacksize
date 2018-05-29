@@ -15,9 +15,20 @@ message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
 
 
 add_definitions(${LLVM_DEFINITIONS})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_COMPILE_FLAGS} -fno-rtti")
 include_directories(${LLVM_INCLUDE_DIRS})
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 
+# Passes
+add_subdirectory(StackEstimatePass)
 
-add_subdirectory(StackEstimate)
+# Main executable
+add_executable(main main.cpp StackEstimatePass/StackEstimatePass.cpp)
+
+# Add llvm libraries
+llvm_map_components_to_libnames(llvm_libs support core irreader)
+
+# Link LLVM libraries
+target_link_libraries(main ${llvm_libs})
