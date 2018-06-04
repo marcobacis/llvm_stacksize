@@ -9,6 +9,12 @@
 
 #define DEBUG_TYPE "stackest"
 
+#include <iostream>
+#include <set>
+#include <map>
+#include <stack>
+#include <string>
+
 #include "LLvm/Pass.h"
 #include "LLvm/IR/Module.h"
 #include "LLvm/IR/Function.h"
@@ -17,9 +23,11 @@
 #include "LLvm/IR/Value.h"
 #include "LLvm/Support/raw_ostream.h"
 #include "LLvm/ADT/Statistic.h"
-
+#include "LLvm/Analysis/CallGraph.h"
+#include "LLvm/Support/Error.h"
 
 using namespace llvm;
+using namespace std;
 
 STATISTIC(MaxStackSize, "pessimistic estimate of the stack size");
 STATISTIC(MinStackSize, "optimistic estimate of the stack size");
@@ -45,6 +53,10 @@ namespace stackest{
         bool runOnModule(Module &M) override;
 
         void getAnalysisUsage(AnalysisUsage &AU);
+
+    private:
+
+        map<string, pair<int, int> > estimates;
     };
 }
 
