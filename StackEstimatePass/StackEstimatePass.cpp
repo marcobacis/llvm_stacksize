@@ -61,8 +61,27 @@ bool StackEstimatePass::runOnModule(Module &M) {
             }
 
         } else if(onstack[current]) {
-            //TODO really call framesize and update estimate using children
             dbgs() << "Calling framesize on " << current << "\n";
+
+            estimate_t currsize = framesize(M.getFunction(current));
+            estimate_t childmax = make_pair(0,0);
+
+            //gets maximum estimate from children
+            for(auto c = cgn->begin(); c != cgn->end(); ++c) {
+                if(c->second->getFunction() != nullptr) {
+                    estimate_t childest = estimates[c->second->getFunction()->getName()];
+
+                    childmax.first = max(childmax.first, childest.first);
+                    childmax.second = max(childmax.second, childest.second);
+
+                }
+            }
+
+            currsize.first += childmax.first;
+            currsize.second += childmax.second;
+
+            estimates[current] = currsize;
+
             visited[current] = true;
             callstack.pop();
         }
@@ -70,8 +89,42 @@ bool StackEstimatePass::runOnModule(Module &M) {
 
     dbgs() << "Finished\n";
 
+    for(Function &F : M) {
+        dbgs() << F.getName() << " size min " << estimates[F.getName()].first << " max " << estimates[F.getName()].second << "\n";
+    }
+
     return false;
 }
+
+estimate_t StackEstimatePass::instsize(Instruction &I) {
+    int smin = 0;
+    int smax = 0;
+    if(auto *AI = dyn_cast<AllocaInst>(&I)) {
+        //TODO handle array allocation
+        unsigned int size = AI->getAllocatedType()->getPrimitiveSizeInBits() / 8;
+
+        //TODO get exact min/max alignments (from instruction or as external params?)
+        smin = size + AI->getAlignment();
+        smax = size + AI->getAlignment();
+    }
+
+    return make_pair(smin,smax);
+}
+
+//TODO Just a skeleton
+estimate_t StackEstimatePass::framesize(Function *F) {
+    for (BasicBlock &BB : *F) {
+        for (Instruction &I : BB) {
+            I.dump();
+            if (isa<AllocaInst>(I)) {
+                dbgs() << instsize(I).first << " " << instsize(I).second << "\n";
+            }
+        }
+    }
+
+    return make_pair(4,4);
+}
+
 
 void StackEstimatePass::getAnalysisUsage(AnalysisUsage &AU) {
     AU.setPreservesAll();

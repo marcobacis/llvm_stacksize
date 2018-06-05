@@ -10,6 +10,7 @@
 #define DEBUG_TYPE "stackest"
 
 #include <iostream>
+#include <utility>
 #include <set>
 #include <map>
 #include <stack>
@@ -20,6 +21,7 @@
 #include "LLvm/IR/Function.h"
 #include "LLvm/IR/InstIterator.h"
 #include "LLvm/IR/Instructions.h"
+#include "LLvm/IR/Constant.h"
 #include "LLvm/IR/Value.h"
 #include "LLvm/Support/raw_ostream.h"
 #include "LLvm/ADT/Statistic.h"
@@ -31,6 +33,9 @@ using namespace std;
 
 STATISTIC(MaxStackSize, "pessimistic estimate of the stack size");
 STATISTIC(MinStackSize, "optimistic estimate of the stack size");
+
+typedef pair<unsigned int, unsigned int> estimate_t;
+
 
 namespace stackest{
 
@@ -56,7 +61,12 @@ namespace stackest{
 
     private:
 
-        map<string, pair<int, int> > estimates;
+        map<string, estimate_t > estimates;
+
+        estimate_t framesize(Function *F);
+
+        estimate_t instsize(Instruction &I);
+
     };
 }
 
