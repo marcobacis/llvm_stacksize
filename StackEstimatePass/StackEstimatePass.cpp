@@ -100,12 +100,21 @@ estimate_t StackEstimatePass::instsize(Instruction &I) {
     int smin = 0;
     int smax = 0;
     if(auto *AI = dyn_cast<AllocaInst>(&I)) {
-        //TODO handle array allocation
-        unsigned int size = AI->getAllocatedType()->getPrimitiveSizeInBits() / 8;
+        I.dump();
+
+        unsigned int size = AI->getAllocatedType()->getPrimitiveSizeInBits();
+
+        auto allocatype = AI->getAllocatedType();
+
+        if(auto arrtype = dyn_cast<ArrayType>(allocatype)) {
+            unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
+            unsigned int arrnum = arrtype->getArrayNumElements();
+            size = elemsize * arrnum;
+        }
 
         //TODO get exact min/max alignments (from instruction or as external params?)
-        smin = size + AI->getAlignment();
-        smax = size + AI->getAlignment();
+        smin = (size + AI->getAlignment()) / 8;
+        smax = (size + AI->getAlignment()) / 8;
     }
 
     return make_pair(smin,smax);
@@ -115,9 +124,8 @@ estimate_t StackEstimatePass::instsize(Instruction &I) {
 estimate_t StackEstimatePass::framesize(Function *F) {
     for (BasicBlock &BB : *F) {
         for (Instruction &I : BB) {
-            I.dump();
             if (isa<AllocaInst>(I)) {
-                dbgs() << instsize(I).first << " " << instsize(I).second << "\n";
+                dbgs() << "\n" << instsize(I).first << " " << instsize(I).second << "\n";
             }
         }
     }
