@@ -16,6 +16,8 @@
 #include <stack>
 #include <string>
 
+#include "estimate.h"
+
 #include "LLvm/Pass.h"
 #include "LLvm/IR/Module.h"
 #include "LLvm/IR/Function.h"
@@ -34,9 +36,6 @@ using namespace std;
 
 STATISTIC(MaxStackSize, "pessimistic estimate of the stack size");
 STATISTIC(MinStackSize, "optimistic estimate of the stack size");
-
-typedef pair<unsigned int, unsigned int> estimate_t;
-
 
 namespace stackest{
 
@@ -62,11 +61,25 @@ namespace stackest{
 
     private:
 
+        /**
+         * Contains the estimates (best, worst) of the frame size of  each function
+         * referenced in the CallGraph of the module.
+         */
         map<string, estimate_t > estimates;
 
+        /**
+         * Compute the estimated frame size of the given function
+         * @param F function to estimate the frame size
+         * @return the estimate (best,worst) of stack allocation from the function
+         */
         estimate_t framesize(Function *F);
 
-        estimate_t instsize(Instruction &I);
+        /**
+         * Computes the estimated size of a value
+         * @param V pointer to the value considered
+         * @return the estimated size (best,worst) of the value (in bytes)
+         */
+        estimate_t valsize(Value *V);
 
     };
 }

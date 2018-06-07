@@ -7,15 +7,15 @@
 #include "StackEstimatePass.h"
 
 using namespace llvm;
-using namespace stackest;
 using namespace std;
+using namespace stackest;
 
 StackEstimatePass::StackEstimatePass() : ModulePass(ID) {}
 
 bool StackEstimatePass::runOnModule(Module &M) {
     llvm::errs() << "In module:" << M.getName() << "\n";
 
-    CallGraph *cg = new CallGraph(M);
+    auto *cg = new CallGraph(M);
 
     map<string, bool> visited;
 
@@ -52,11 +52,8 @@ bool StackEstimatePass::runOnModule(Module &M) {
                         callstack.push(name);
                     }
 
-                    if(onstack[name]) {
-                        errs() << "Recursion is not supported.\n";
-                        //TODO raise llvm error
-                        return false;
-                    }
+
+                    assert(!onstack[name] && "Recursion is not supported.\n");
                 }
             }
 
@@ -64,21 +61,17 @@ bool StackEstimatePass::runOnModule(Module &M) {
             dbgs() << "Calling framesize on " << current << "\n";
 
             estimate_t currsize = framesize(M.getFunction(current));
-            estimate_t childmax = make_pair(0,0);
+            estimate_t childmax(0,0);
 
             //gets maximum estimate from children
             for(auto c = cgn->begin(); c != cgn->end(); ++c) {
                 if(c->second->getFunction() != nullptr) {
                     estimate_t childest = estimates[c->second->getFunction()->getName()];
-
-                    childmax.first = max(childmax.first, childest.first);
-                    childmax.second = max(childmax.second, childest.second);
-
+                    childmax = max(childmax, childest);
                 }
             }
 
-            currsize.first += childmax.first;
-            currsize.second += childmax.second;
+            currsize += childmax;
 
             estimates[current] = currsize;
 
@@ -90,47 +83,80 @@ bool StackEstimatePass::runOnModule(Module &M) {
     dbgs() << "Finished\n";
 
     for(Function &F : M) {
-        dbgs() << F.getName() << " size min " << estimates[F.getName()].first << " max " << estimates[F.getName()].second << "\n";
+        dbgs() << F.getName() << " size min " << estimates[F.getName()].best << " max " << estimates[F.getName()].worst << "\n";
     }
 
     return false;
 }
 
-estimate_t StackEstimatePass::instsize(Instruction &I) {
-    int smin = 0;
-    int smax = 0;
-    if(auto *AI = dyn_cast<AllocaInst>(&I)) {
-        I.dump();
+estimate_t StackEstimatePass::valsize(Value *V) {
+    unsigned int smin = 0;
+    unsigned int smax = 0;
 
-        unsigned int size = AI->getAllocatedType()->getPrimitiveSizeInBits();
+    unsigned int size = V->getType()->getPrimitiveSizeInBits();
 
-        auto allocatype = AI->getAllocatedType();
+    auto valtype = V->getType();
 
-        if(auto arrtype = dyn_cast<ArrayType>(allocatype)) {
-            unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
-            unsigned int arrnum = arrtype->getArrayNumElements();
-            size = elemsize * arrnum;
-        }
-
-        //TODO get exact min/max alignments (from instruction or as external params?)
-        smin = (size + AI->getAlignment()) / 8;
-        smax = (size + AI->getAlignment()) / 8;
+    if(auto arrtype = dyn_cast<ArrayType>(valtype)) {
+        unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
+        unsigned int arrnum = arrtype->getArrayNumElements();
+        size = elemsize * arrnum;
     }
 
-    return make_pair(smin,smax);
+    //TODO get exact min/max alignments (from instruction or as external params?)
+    smin = size / 8;// + AI->getAlignment()) / 8;
+    smax = size / 8;// + AI->getAlignment()) / 8;
+
+    return {smin,smax};
 }
 
-//TODO Just a skeleton
 estimate_t StackEstimatePass::framesize(Function *F) {
+
+    estimate_t salloca(0,0);
+    estimate_t sf(0,0);
+
     for (BasicBlock &BB : *F) {
+
+        estimate_t sb(0,0);
+
         for (Instruction &I : BB) {
+
             if (isa<AllocaInst>(I)) {
-                dbgs() << "\n" << instsize(I).first << " " << instsize(I).second << "\n";
+                estimate_t s = valsize(I.getOperand(0));
+                salloca += s;
             }
+
+            // Value *[] live = livevars(I)
+            // Value *[] allocated = regallocation(live)
+
+            //TODO change this when live/reg values are available
+            vector<Value *> live;
+            for(unsigned int i = 0; i < I.getNumOperands(); i++) {
+                live.push_back(I.getOperand(i));
+            }
+            vector<Value *> allocated;
+
+            estimate_t current(0,0);
+
+            for(auto lval : live) {
+                current.best += valsize(lval).best;
+                current.worst += valsize(lval).best;
+            }
+
+            for(auto rval : allocated) {
+                current.best -= valsize(rval).worst;
+            }
+
+
+            sb = max(sb, current);
+
         }
+
+        sf = max(sf, sb);
     }
 
-    return make_pair(4,4);
+    sf += salloca;
+    return sf;
 }
 
 
