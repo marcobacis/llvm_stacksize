@@ -25,10 +25,18 @@ bool StackEstimatePass::runOnModule(Module &M) {
 
     stack<string> callstack;
 
-    //TODO fix this, either by finding it or allowing more roots
-    StringRef rootname = "main";
+    //Find "roots" of the callgraph and add them as first nodes to visit.
+    // A root should be a node without incoming edges.
+    // However, the external calling node is always present.
 
-    callstack.push(rootname);
+    auto ext = cg->getExternalCallingNode();
+
+    for(auto cgn = ext->begin(); cgn != ext->end(); ++cgn) {
+        if(cgn->second != nullptr && cgn->second->getNumReferences() == 1) {
+            callstack.push(cgn->second->getFunction()->getName());
+        }
+    }
+
 
     // Performs a iterative post-order DFS with recursion identification
 
