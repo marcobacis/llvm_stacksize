@@ -13,19 +13,21 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "LLVM include dirs: ${LLVM_INCLUDE_DIRS}")
 message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
 
+#Directory Structure
 
+set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
+set(SOURCES_DIR "${PROJECT_SOURCE_DIR}/src")
+file(GLOB SOURCES ${SOURCES_DIR}/*.cpp)
+
+#LLVM Stuff
 add_definitions(${LLVM_DEFINITIONS})
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_COMPILE_FLAGS} -fno-rtti")
-include_directories(${LLVM_INCLUDE_DIRS})
+include_directories(${LLVM_INCLUDE_DIRS} ${INCLUDE_DIR})
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 
-# Passes
-add_subdirectory(StackEstimatePass)
-
 # Main executable
-add_executable(main main.cpp StackEstimatePass/StackEstimatePass.cpp)
+add_llvm_executable(main ${SOURCES})
 
 # Add llvm libraries
 llvm_map_components_to_libnames(llvm_libs support core irreader analysis)
