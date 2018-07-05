@@ -23,8 +23,6 @@ bool LiveValues::runOnFunction(Function &F) {
     for (auto bb = F.begin(); bb != F.end(); bb++) {
         _def.clear();
         _use.clear();
-        _def.reserve(initial_size);
-        _use.reserve(initial_size);
 
         for (auto i_it = bb->begin(); i_it != bb->end(); i_it++) {
             _def = getDef(*i_it);
@@ -47,8 +45,8 @@ bool LiveValues::runOnFunction(Function &F) {
         } // end for each Instruction
 
         // Upwards Exposed Values
-        _upExp[&*bb] = _use;
-        set_difference(_upExp[&*bb], _def, vse);
+        _upExp[&*bb] = _uses[&*bb];
+        set_difference(_upExp[&*bb], _defs[&*bb], vse);
 
         workList.push(&*bb);
     }
@@ -120,6 +118,31 @@ BitVector LiveValues::getLiveOut(BasicBlock* bb) const {
     auto r = _bbLiveOut.find(bb);
     if (r != _bbLiveOut.end()) tmp = r->second;
     return tmp;
+}
+
+void LiveValues::runOnBasicBlock(BasicBlock *bb) {
+
+    //resets the previous map
+    _bbLiveInst.clear();
+
+    //reverse iteration, starting from the out set of the bb
+    //adding uses, removing defs for each instruction
+
+    auto currLive = getLiveOut(bb);
+
+    for(auto I = bb->rbegin(); I != bb->rend(); ++I) {
+        set_union(currLive, getUse(*I),vse);
+        _bbLiveInst[&*I] = toSet(currLive, vse);
+        set_difference(currLive, getDef(*I), vse);
+    }
+}
+
+DenseSet<Value *> LiveValues::get_instLive(Instruction *I) {
+
+    if(cur_bb != I->getParent())
+        runOnBasicBlock(I->getParent());
+
+    return _bbLiveInst[I];
 }
 
 void LiveValues::getAnalysisUsage(AnalysisUsage &AU) const {

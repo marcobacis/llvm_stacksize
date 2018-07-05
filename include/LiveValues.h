@@ -55,6 +55,10 @@ namespace llvm {
 
         void getAnalysisUsage(AnalysisUsage &AU) const override;
 
+
+
+        DenseSet<Value *> get_instLive(Instruction *I);
+
         ValueShortEnumerator getVSE() const {return vse; }
 
     private:
@@ -63,6 +67,12 @@ namespace llvm {
 
         std::map<BasicBlock*, BitVector> _bbLiveIn;
         std::map<BasicBlock*, BitVector> _bbLiveOut;
+
+        BasicBlock *cur_bb;
+
+        DenseMap<Instruction *, DenseSet<Value*> > _bbLiveInst;
+
+        void runOnBasicBlock(BasicBlock *bb);
 
         BitVector getDef(const Instruction &instr);
 

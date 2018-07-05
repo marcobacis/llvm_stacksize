@@ -5,6 +5,7 @@
  */
 
 #include "StackEstimatePass.h"
+#include "LiveValues.h"
 
 using namespace llvm;
 using namespace std;
@@ -123,6 +124,9 @@ estimate_t StackEstimatePass::framesize(Function *F) {
     estimate_t salloca(0,0);
     estimate_t sf(0,0);
 
+    LiveValues lives;
+    lives.runOnFunction(*F);
+
     for (BasicBlock &BB : *F) {
 
         estimate_t sb(0,0);
@@ -134,14 +138,9 @@ estimate_t StackEstimatePass::framesize(Function *F) {
                 salloca += s;
             }
 
-            // Value *[] live = livevars(I)
-            // Value *[] allocated = regallocation(live)
+            DenseSet<Value *> live = lives.get_instLive(&I);
+            //Value *[] allocated = regallocation(live);
 
-            //TODO change this when live/reg values are available
-            vector<Value *> live;
-            for(unsigned int i = 0; i < I.getNumOperands(); i++) {
-                live.push_back(I.getOperand(i));
-            }
             vector<Value *> allocated;
 
             estimate_t current(0,0);
