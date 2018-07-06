@@ -30,7 +30,7 @@ include(AddLLVM)
 add_llvm_executable(main ${SOURCES})
 
 # Add llvm libraries
-llvm_map_components_to_libnames(llvm_libs support core irreader analysis)
+llvm_map_components_to_libnames(llvm_libs support core irreader analysis passes)
 
 # Link LLVM libraries
 target_link_libraries(main ${llvm_libs})

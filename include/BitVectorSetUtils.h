@@ -1,3 +1,9 @@
+/**
+ * Helper functions to use BitVectors as sets
+ *
+ * @authors Stefano Cherubin, Marco Bacis
+ */
+
 #ifndef LLVM_LIB_ANALYSIS_BIT_VECTOR_UTILS_H
 #define LLVM_LIB_ANALYSIS_BIT_VECTOR_UTILS_H
 

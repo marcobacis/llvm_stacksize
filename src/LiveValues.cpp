@@ -139,8 +139,11 @@ void LiveValues::runOnBasicBlock(BasicBlock *bb) {
 
 DenseSet<Value *> LiveValues::get_instLive(Instruction *I) {
 
-    if(cur_bb != I->getParent())
+    //Lazy Evaluation
+    if(cur_bb != I->getParent()) {
         runOnBasicBlock(I->getParent());
+        cur_bb = I->getParent();
+    }
 
     return _bbLiveInst[I];
 }

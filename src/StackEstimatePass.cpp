@@ -145,6 +145,14 @@ estimate_t StackEstimatePass::framesize(Function *F) {
 
             estimate_t current(0,0);
 
+            dbgs() << "Live in instruction:";
+            I.dump();
+            for(auto val = live.begin(); val != live.end(); ++val) {
+                dbgs() << (*val)->getName().str() << " + ";
+
+            }
+            dbgs() << "\n\n";
+
             for(auto lval : live) {
                 current.best += valsize(lval).best;
                 current.worst += valsize(lval).best;

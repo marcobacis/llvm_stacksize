@@ -1,3 +1,10 @@
+/**
+ * Helper class for the liveness computation pass.
+ * Enumerates all the values found in the analyzed function.
+ *
+ * @authors Stefano Cherubin
+ */
+
 #ifndef LLVM_LIB_ANALYSIS_VALUE_SHORT_ENUMERATOR_H
 #define LLVM_LIB_ANALYSIS_VALUE_SHORT_ENUMERATOR_H
 

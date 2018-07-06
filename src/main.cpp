@@ -15,6 +15,9 @@
 #include "LLvm/AsmParser/Parser.h"
 #include "StackEstimatePass.h"
 
+#include "LLvm/Transforms/Scalar.h"
+
+
 using namespace llvm;
 using namespace stackest;
 
@@ -43,6 +46,12 @@ int main(int argc, char *argv[]) {
 
     legacy::PassManager PM;
 
+    PM.add(createPromoteMemoryToRegisterPass());
+    PM.add(createConstantPropagationPass());
+    PM.add(createDeadCodeEliminationPass());
+    PM.add(createDeadInstEliminationPass());
+    PM.add(createDeadStoreEliminationPass());
+    PM.add(createLCSSAPass());
     PM.add(new StackEstimatePass());
     PM.run(*module);
 
