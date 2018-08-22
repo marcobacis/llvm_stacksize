@@ -9,16 +9,31 @@
 using namespace llvm;
 using namespace std;
 
-bool search (Value* value, vector<Register> reg){
+bool RegisterAllocation :: assign(Type *t, vector<Register> &reg){
+    for (int i=0; i < reg.size(); i++){
+        if(TD->getTypeSizeInBits(t) < reg[i].dim && reg[i].isEmpty) {
+            reg[i].isEmpty = false;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool RegisterAllocation :: splitValue(Type *t, vector<Register> &reg){
+
+
 
 }
 
-void RegisterAllocation :: allocationRegister(){
 
+bool RegisterAllocation :: allocate(Value* value , vector<Register> &pref , vector<Register> &fallBack){
+    Type* type = value->getType();
+    if(!assign(type, pref))
+        if(!assign(type , fallBack))
+            if(!splitValue(type ,pref ))
+                notInReg.insert(value);
 
 }
-
-
 
 void RegisterAllocation :: divideVariable(DenseSet<Value *> liveValue ){
 
