@@ -9,7 +9,8 @@
 using namespace llvm;
 using namespace std;
 
-bool RegisterAllocation :: assign(Type *t, vector<Register> &reg){
+//Allocate a value all in the same register
+bool RegisterAllocation :: assign(Type *t, vector<vector<Register>*> &reg){
     for (int i=0; i < reg.size(); i++){
         if(TD->getTypeSizeInBits(t) < reg[i].dim && reg[i].isEmpty) {
             reg[i].isEmpty = false;
@@ -19,22 +20,74 @@ bool RegisterAllocation :: assign(Type *t, vector<Register> &reg){
     return false;
 }
 
-bool RegisterAllocation :: splitValue(Type *t, vector<Register> &reg){
-
+//Allocate a value in more than one register
+bool RegisterAllocation :: splitValue(Type *t, vector<vector<Register>*> &reg){
 
 
 }
 
-
-bool RegisterAllocation :: allocate(Value* value , vector<Register> &pref , vector<Register> &fallBack){
+//Try to allocate a value in a register
+bool RegisterAllocation :: allocate(Value* value , vector<vector<Register>*> &pref , vector<vector<Register>*> &fallBack){
     Type* type = value->getType();
     if(!assign(type, pref))
         if(!assign(type , fallBack))
-            if(!splitValue(type ,pref ))
-                notInReg.insert(value);
+            if(!splitValue(type , pref))
+                if(!splitValue(type , fallBack))
+                    notInReg.insert(value);
 
 }
 
+DenseSet<Value*> RegisterAllocation :: valueAllocation(){
+    vector<vector<Register>*> pref;
+    vector<vector<Register>*> fallBack;
+    for(int i=0; i < scalars.size(); i++){
+
+        if (!scalars[i]->getType()->isIntegerTy() ){
+            pref.push_back(&regFloat);
+            fallBack.push_back(&regInt);
+            fallBack.push_back(&regGeneral);
+
+       }else {
+            pref.push_back(&regInt);
+            fallBack.push_back(&regGeneral);
+        }
+        allocate(scalars[i] , pref , fallBack);
+        pref.clear();
+        fallBack.clear();
+    }
+    for(int i = 0 ; i < other.size(); i++){
+        fallBack.push_back(&regInt);
+        fallBack.push_back(&regGeneral);
+        allocate(other[i] , pref , fallBack);
+        fallBack.clear();
+    }
+    for(int i = 0 ; i < vectors.size(); i++){
+        pref.push_back(&regVector);
+        fallBack.push_back(&regInt);
+        fallBack.push_back(&regGeneral);
+        allocate(vectors[i] , pref , fallBack);
+        pref.clear();
+        fallBack.clear();
+    }
+    for(int i = 0 ; i < arrays.size(); i++){
+        pref.push_back(&regVector);
+        fallBack.push_back(&regInt);
+        fallBack.push_back(&regGeneral);
+        allocate(arrays[i] , pref , fallBack);
+        pref.clear();
+        fallBack.clear();
+    }
+    for(int i = 0 ; i < structs.size(); i++){
+        pref.push_back(&regGeneral);
+        fallBack.push_back(&regInt);
+        allocate(structs[i] , pref , fallBack);
+        pref.clear();
+        fallBack.clear();
+    }
+
+    return notInReg;
+
+}
 void RegisterAllocation :: divideVariable(DenseSet<Value *> liveValue ){
 
     //Divide the DenseSet in five vectors
@@ -92,9 +145,3 @@ void RegisterAllocation :: divideVariable(DenseSet<Value *> liveValue ){
 
 }
 
-DenseSet<Value*> RegisterAllocation::regAllocation(DenseSet<Value*> liveValue){
-
-    return liveValue;
-
-
-}
