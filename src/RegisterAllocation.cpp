@@ -10,19 +10,42 @@ using namespace llvm;
 using namespace std;
 
 //Allocate a value all in the same register
-bool RegisterAllocation :: assign(Type *t, vector<vector<Register>*> &reg){
-    for (int i=0; i < reg.size(); i++){
-        if(TD->getTypeSizeInBits(t) < reg[i].dim && reg[i].isEmpty) {
-            reg[i].isEmpty = false;
-            return true;
+bool RegisterAllocation :: assign(Type *t, vector<vector<Register>*> &allRegister){
+    for (int i=0; i < allRegister.size(); i++){
+        vector<Register>* reg = allRegister[i];
+        for (int j = 0; j < reg->size() ; j++){
+            if(TD->getTypeSizeInBits(t) < reg->at(j).dim && reg->at(j).isEmpty) {
+                reg->at(i).isEmpty = false;
+                return true;
+            }
         }
+
     }
     return false;
 }
 
 //Allocate a value in more than one register
-bool RegisterAllocation :: splitValue(Type *t, vector<vector<Register>*> &reg){
-
+bool RegisterAllocation :: splitValue(Type *t, vector<vector<Register>*> &allRegister){
+    int dimReg;
+    int dimValue = TD->getTypeSizeInBits(t);
+    for(int i = 0; i < allRegister.size(); i++){
+        vector<Register>* reg = allRegister[i];
+        for (int j = 0; j < reg->size() ; j++){
+            dimReg = 0;
+            if(reg->at(j).isEmpty){
+               dimReg = reg->at(j).dim;
+               int k = j+1;
+               while (dimValue && reg->at(k).dim == dimReg && k < reg->size()){
+                   dimValue-= dimReg;
+                   k++;
+               }
+               if (dimValue < 0)
+                   return true;
+            }
+        }
+        if (dimValue)
+            return false;
+    }
 
 }
 

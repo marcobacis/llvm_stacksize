@@ -35,8 +35,8 @@ class RegisterAllocation {
 
     DenseSet<Value*> notInReg;
 
-    bool assign(Type *t, vector<vector<Register>*> &reg);
-    bool splitValue(Type *t, vector<vector<Register>*> &reg);
+    bool assign(Type *t, vector<vector<Register>*> &allRegister);
+    bool splitValue(Type *t, vector<vector<Register>*> &allRegister);
     bool allocate(Value* value , vector<vector<Register>*> &pref , vector<vector<Register>*> &fallBack);
     DenseSet<Value*> valueAllocation();
 
