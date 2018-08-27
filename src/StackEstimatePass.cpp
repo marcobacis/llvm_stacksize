@@ -96,7 +96,7 @@ bool StackEstimatePass::runOnModule(Module &M) {
 
     for(Function *F : roots) {
         StringRef name = F->getName();
-        dbgs() << name << " size min " << estimates[name].best << " max " << estimates[name].worst << "\n";
+        dbgs() << M.getName() << " " << name << " size min " << estimates[name].best << " max " << estimates[name].worst << "\n";
     }
 
     return false;
