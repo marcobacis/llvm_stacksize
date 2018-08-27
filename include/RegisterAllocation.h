@@ -11,6 +11,11 @@ using namespace llvm;
 struct Register {
     int dim;
     bool isEmpty; //all true
+
+    bool operator<(Register other) const {
+        return dim < other.dim;
+    }
+
 };
 
 class RegisterAllocation {
@@ -52,7 +57,6 @@ private:
 
     void parseRegisterLine(string &line);
     void instantiateRegisters(int dim, int num, vector<Register> *regbank);
-
 
     void divideVariable(DenseSet<Value *> liveValue);
 

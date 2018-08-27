@@ -26,6 +26,14 @@ RegisterAllocation::RegisterAllocation(StringRef filepath) {
             parseRegisterLine(line);
         }
     }
+
+
+    //sort all the register types
+    sort(regInt.begin(), regInt.end());
+    sort(regFloat.begin(), regFloat.end());
+    sort(regVector.begin(), regVector.end());
+    sort(regGeneral.begin(), regGeneral.end());
+
 }
 
 void RegisterAllocation::parseRegisterLine(string &line) {
@@ -92,7 +100,7 @@ bool RegisterAllocation::assign(Type *t, vector<vector<Register> *> &allRegister
     for (int i = 0; i < allRegister.size(); i++) {
         vector<Register> *reg = allRegister[i];
         for (int j = 0; j < reg->size(); j++) {
-            if (TD->getTypeSizeInBits(t) < reg->at(j).dim && reg->at(j).isEmpty) {
+            if (TD->getTypeSizeInBits(t) <= reg->at(j).dim && reg->at(j).isEmpty) {
                 reg->at(i).isEmpty = false;
                 return true;
             }
@@ -130,12 +138,15 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
 //Try to allocate a value in a register
 bool  RegisterAllocation::allocate(Value *value, vector<vector<Register> *> &pref, vector<vector<Register> *> &fallBack) {
     Type *type = value->getType();
-    if (!assign(type, pref))
-        if (!assign(type, fallBack))
-            if (!splitValue(type, pref))
-                if (!splitValue(type, fallBack))
+    if (!assign(type, pref)) {
+        if (!assign(type, fallBack)) {
+            if (!splitValue(type, pref)) {
+                if (!splitValue(type, fallBack)) {
                     notInReg.insert(value);
-
+                }
+            }
+        }
+    }
 }
 
 DenseSet<Value *> RegisterAllocation::valueAllocation() {
