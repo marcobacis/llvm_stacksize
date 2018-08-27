@@ -17,7 +17,7 @@ RegisterAllocation::RegisterAllocation(StringRef filepath) {
     if (regbank.is_open()) {
 
         //reads alignments
-        regbank >> minAlign >> maxAlign;
+        regbank >> align;
         getline(regbank, line); //end of first line
 
         while (getline(regbank, line)) {

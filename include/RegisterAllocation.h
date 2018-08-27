@@ -37,8 +37,7 @@ public:
 
     DenseSet<Value *> run(DenseSet<Value *> liveValue);
 
-    int getMinAlign() { return minAlign; };
-    int getMaxAlign() { return maxAlign; };
+    int getAlignment() { return align; };
 
     static unsigned int getTypeSize(Type *valtype);
 
@@ -56,8 +55,7 @@ private:
     vector<Register> regVector;
     vector<Register> regGeneral;
 
-    int minAlign;
-    int maxAlign;
+    int align;
 
     DenseSet<Value *> allocated;
 

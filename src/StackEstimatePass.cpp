@@ -105,11 +105,13 @@ bool StackEstimatePass::runOnModule(Module &M) {
 estimate_t StackEstimatePass::valsize(Value *V) {
     unsigned int smin = 0;
     unsigned int smax = 0;
+    unsigned int alignment = regalloc->getAlignment();
 
-    unsigned int size = RegisterAllocation::getTypeSize(V->getType());
+    unsigned int size = ceil(RegisterAllocation::getTypeSize(V->getType()) / 8.0);
 
-    smin = (size + regalloc->getMinAlign()) / 8;
-    smax = (size + regalloc->getMaxAlign()) / 8;
+    smin = size;
+    //pads the value to the preferred alignment size
+    smax = ceil((float)size / alignment) * alignment;
 
     return {smin,smax};
 }
@@ -141,13 +143,17 @@ estimate_t StackEstimatePass::framesize(Function *F) {
 
             for(auto lval : live) {
                 current.best += valsize(lval).best;
-                current.worst += valsize(lval).best;
+                current.worst += valsize(lval).worst;
             }
 
             for(auto rval : allocated) {
-                current.best -= valsize(rval).worst;
+                unsigned int size = valsize(rval).best;
+                if(current.best < size) {
+                    current.best = 0;
+                    break;
+                }
+                current.best -= size;
             }
-
 
             sb = max(sb, current);
 

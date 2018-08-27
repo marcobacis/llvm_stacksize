@@ -15,6 +15,7 @@
 #include <map>
 #include <stack>
 #include <string>
+#include <cmath>
 
 #include "estimate.h"
 #include "RegisterAllocation.h"
