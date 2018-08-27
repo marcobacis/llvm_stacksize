@@ -142,8 +142,9 @@ estimate_t StackEstimatePass::framesize(Function *F) {
             estimate_t current(0,0);
 
             for(auto lval : live) {
-                current.best += valsize(lval).best;
-                current.worst += valsize(lval).worst;
+                estimate_t vsize = valsize(lval);
+                current.best += vsize.best;
+                current.worst += vsize.worst;
             }
 
             for(auto rval : allocated) {

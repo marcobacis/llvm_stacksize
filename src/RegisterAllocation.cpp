@@ -95,15 +95,15 @@ void RegisterAllocation::clearRegisterType(vector<Register> &regtype) {
 
 //Allocate a value all in the same register
 bool RegisterAllocation::assign(Type *t, vector<vector<Register> *> &allRegister) {
-    for (int i = 0; i < allRegister.size(); i++) {
-        vector<Register> *reg = allRegister[i];
-        for (int j = 0; j < reg->size(); j++) {
-            if (getTypeSize(t) <= reg->at(j).dim && reg->at(j).isEmpty) {
-                reg->at(i).isEmpty = false;
+    unsigned int size = getTypeSize(t);
+
+    for (auto &regBank : allRegister) {
+        for (Register &reg : *regBank) {
+            if ( size <= reg.dim && reg.isEmpty) {
+                reg.isEmpty = false;
                 return true;
             }
         }
-
     }
     return false;
 }
@@ -115,7 +115,6 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
     for (int i = 0; i < allRegister.size(); i++) {
         vector<Register> *reg = allRegister[i];
         for (int j = 0; j < reg->size(); j++) {
-            dimReg = 0;
             if (reg->at(j).isEmpty) {
                 dimReg = reg->at(j).dim;
                 int k = j + 1;
@@ -137,11 +136,11 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
 bool  RegisterAllocation::allocate(Value *value, vector<vector<Register> *> &pref, vector<vector<Register> *> &fallBack) {
     Type *type = value->getType();
     if (!assign(type, pref)) {
-        if (!assign(type, fallBack)) {
+            if (!assign(type, fallBack)) {
             if (!splitValue(type, pref)) {
                 if (!splitValue(type, fallBack)) {
                     return false;
-                }
+            }
             }
         }
     }
@@ -254,6 +253,10 @@ void RegisterAllocation::divideVariable(DenseSet<Value *> liveValue) {
     };
 
     sort(scalars.begin(), scalars.end(), cmpTy);
+    sort(structs.begin(), structs.end(), cmpTy);
+    sort(arrays.begin(), arrays.end(), cmpTy);
+    sort(vectors.begin(), vectors.end(), cmpTy);
+    sort(other.begin(), other.end(), cmpTy);
 }
 
 unsigned int RegisterAllocation::getTypeSize(Type *valtype) {
@@ -264,6 +267,11 @@ unsigned int RegisterAllocation::getTypeSize(Type *valtype) {
         unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
         unsigned int arrnum = arrtype->getArrayNumElements();
         size = elemsize * arrnum;
+
+    } else if (auto vectype = dyn_cast<VectorType>(valtype)) {
+        unsigned int elemsize = vectype->getVectorElementType()->getPrimitiveSizeInBits();
+        unsigned int num = vectype->getVectorNumElements();
+        size = elemsize * num;
 
     } else if(auto structype = dyn_cast<StructType>(valtype)) {
         unsigned int totsize = 0;
