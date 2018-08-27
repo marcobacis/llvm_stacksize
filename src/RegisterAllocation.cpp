@@ -70,11 +70,11 @@ void RegisterAllocation::instantiateRegisters(int dim, int num, vector<Register>
 }
 
 DenseSet<Value *> RegisterAllocation::run(DenseSet<Value *> liveValue) {
+    clearRegisterFile();
+
     divideVariable(liveValue);
 
-    DenseSet<Value *> notallocated = valueAllocation();
-
-    clearRegisterFile();
+    valueAllocation();
 
     return allocated;
 }
@@ -85,6 +85,15 @@ void RegisterAllocation::clearRegisterFile() {
     clearRegisterType(regFloat);
     clearRegisterType(regGeneral);
     clearRegisterType(regVector);
+
+    scalars.clear();
+    other.clear();
+    vectors.clear();
+    arrays.clear();
+    structs.clear();
+
+    allocated.clear();
+
 }
 
 void RegisterAllocation::clearRegisterType(vector<Register> &regtype) {
@@ -133,14 +142,14 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
 }
 
 //Try to allocate a value in a register
-bool  RegisterAllocation::allocate(Value *value, vector<vector<Register> *> &pref, vector<vector<Register> *> &fallBack) {
+bool RegisterAllocation::allocate(Value *value, vector<vector<Register> *> &pref, vector<vector<Register> *> &fallBack) {
     Type *type = value->getType();
     if (!assign(type, pref)) {
-            if (!assign(type, fallBack)) {
+        if (!assign(type, fallBack)) {
             if (!splitValue(type, pref)) {
                 if (!splitValue(type, fallBack)) {
                     return false;
-            }
+                }
             }
         }
     }
