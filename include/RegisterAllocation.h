@@ -5,6 +5,17 @@
 #ifndef STACKSIZE_REGISTERALLOCATION_H
 #define STACKSIZE_REGISTERALLOCATION_H
 
+#include <fstream>
+#include <sstream>
+
+#include "LLvm/IR/Value.h"
+#include "LLvm/IR/DataLayout.h"
+#include "LLvm/IR/DerivedTypes.h"
+#include "LLvm/Support/raw_ostream.h"
+#include "LLvm/ADT/Statistic.h"
+#include "LLvm/ADT/DenseSet.h"
+#include "LLvm/Support/Error.h"
+
 using namespace std;
 using namespace llvm;
 
@@ -29,9 +40,9 @@ public:
     int getMinAlign() { return minAlign; };
     int getMaxAlign() { return maxAlign; };
 
-private:
-    DataLayout *TD;
+    static unsigned int getTypeSize(Type *valtype);
 
+private:
     /** Values vectors used to store the (ordered) live values **/
     vector<Value *> scalars;
     vector<Value *> vectors;
@@ -48,7 +59,7 @@ private:
     int minAlign;
     int maxAlign;
 
-    DenseSet<Value *> notInReg;
+    DenseSet<Value *> allocated;
 
     DenseSet<Value *> valueAllocation();
 
@@ -69,6 +80,7 @@ private:
     bool splitValue(Type *t, vector<vector<Register> *> &allRegister);
 
     bool allocate(Value *value, vector<vector<Register> *> &pref, vector<vector<Register> *> &fallBack);
+
 
 
 };

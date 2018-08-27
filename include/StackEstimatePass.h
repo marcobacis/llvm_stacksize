@@ -17,6 +17,7 @@
 #include <string>
 
 #include "estimate.h"
+#include "RegisterAllocation.h"
 
 #include "LLvm/Pass.h"
 #include "LLvm/IR/Module.h"
@@ -37,7 +38,7 @@ using namespace std;
 STATISTIC(MaxStackSize, "pessimistic estimate of the stack size");
 STATISTIC(MinStackSize, "optimistic estimate of the stack size");
 
-namespace stackest{
+namespace stackest {
 
     /**
      * @class StackEstimate
@@ -51,9 +52,9 @@ namespace stackest{
 
     public:
 
-        static char ID;
+        char ID = 0;
 
-        StackEstimatePass();
+        StackEstimatePass(RegisterAllocation *alloc);
 
         bool runOnModule(Module &M) override;
 
@@ -61,11 +62,13 @@ namespace stackest{
 
     private:
 
+        RegisterAllocation *regalloc;
+
         /**
          * Contains the estimates (best, worst) of the frame size of  each function
          * referenced in the CallGraph of the module.
          */
-        map<string, estimate_t > estimates;
+        map<string, estimate_t> estimates;
 
         /**
          * Compute the estimated frame size of the given function
@@ -82,6 +85,8 @@ namespace stackest{
         estimate_t valsize(Value *V);
 
     };
+
+    StackEstimatePass *createStackEstimatePass(RegisterAllocation *alloc);
 }
 
 

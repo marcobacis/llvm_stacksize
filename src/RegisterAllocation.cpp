@@ -2,9 +2,7 @@
 // Created by Maddalena Beccari on 20/07/18.
 //
 
-#include <fstream>
-#include <sstream>
-#include "StackEstimatePass.h"
+
 #include "RegisterAllocation.h"
 
 using namespace llvm;
@@ -78,7 +76,7 @@ DenseSet<Value *> RegisterAllocation::run(DenseSet<Value *> liveValue) {
 
     clearRegisterFile();
 
-    return notallocated;
+    return allocated;
 }
 
 
@@ -100,7 +98,7 @@ bool RegisterAllocation::assign(Type *t, vector<vector<Register> *> &allRegister
     for (int i = 0; i < allRegister.size(); i++) {
         vector<Register> *reg = allRegister[i];
         for (int j = 0; j < reg->size(); j++) {
-            if (TD->getTypeSizeInBits(t) <= reg->at(j).dim && reg->at(j).isEmpty) {
+            if (getTypeSize(t) <= reg->at(j).dim && reg->at(j).isEmpty) {
                 reg->at(i).isEmpty = false;
                 return true;
             }
@@ -113,7 +111,7 @@ bool RegisterAllocation::assign(Type *t, vector<vector<Register> *> &allRegister
 //Allocate a value in more than one register
 bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegister) {
     int dimReg;
-    int dimValue = TD->getTypeSizeInBits(t);
+    int dimValue = getTypeSize(t);
     for (int i = 0; i < allRegister.size(); i++) {
         vector<Register> *reg = allRegister[i];
         for (int j = 0; j < reg->size(); j++) {
@@ -132,7 +130,7 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
         if (dimValue)
             return false;
     }
-
+    return false;
 }
 
 //Try to allocate a value in a register
@@ -142,11 +140,13 @@ bool  RegisterAllocation::allocate(Value *value, vector<vector<Register> *> &pre
         if (!assign(type, fallBack)) {
             if (!splitValue(type, pref)) {
                 if (!splitValue(type, fallBack)) {
-                    notInReg.insert(value);
+                    return false;
                 }
             }
         }
     }
+    allocated.insert(value);
+    return true;
 }
 
 DenseSet<Value *> RegisterAllocation::valueAllocation() {
@@ -197,7 +197,7 @@ DenseSet<Value *> RegisterAllocation::valueAllocation() {
         fallBack.clear();
     }
 
-    return notInReg;
+    return allocated;
 
 }
 
@@ -239,22 +239,38 @@ void RegisterAllocation::divideVariable(DenseSet<Value *> liveValue) {
             case Type::LabelTyID:
             case Type::MetadataTyID:
             case Type::TokenTyID:
-                return TD->getTypeSizeInBits(t1) > TD->getTypeSizeInBits(t2);
+                return getTypeSize(t1) > getTypeSize(t2);
 
             case Type::StructTyID:
             case Type::ArrayTyID:
-                return TD->getTypeSizeInBits(t1) < TD->getTypeSizeInBits(t2);
+                return getTypeSize(t1) < getTypeSize(t2);
             case Type::VectorTyID:
-                return TD->getTypeSizeInBits(t1) > TD->getTypeSizeInBits(t2);
+                return getTypeSize(t1) > getTypeSize(t2);
 
             default:
-                return TD->getTypeSizeInBits(t1) > TD->getTypeSizeInBits(t2);
+                return getTypeSize(t1) > getTypeSize(t2);
 
         }
     };
 
     sort(scalars.begin(), scalars.end(), cmpTy);
-
-
 }
 
+unsigned int RegisterAllocation::getTypeSize(Type *valtype) {
+
+    int size = valtype->getPrimitiveSizeInBits();
+
+    if(auto arrtype = dyn_cast<ArrayType>(valtype)) {
+        unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
+        unsigned int arrnum = arrtype->getArrayNumElements();
+        size = elemsize * arrnum;
+
+    } else if(auto structype = dyn_cast<StructType>(valtype)) {
+        unsigned int totsize = 0;
+        for(auto element : structype->elements())
+            totsize += getTypeSize(element);
+        size = totsize;
+    }
+
+    return size;
+}

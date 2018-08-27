@@ -1,0 +1,6 @@
+0 8
+int,16,32
+float,8,64
+float,8,32
+vector,16,128
+general,8,16

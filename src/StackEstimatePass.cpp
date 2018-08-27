@@ -11,7 +11,13 @@ using namespace llvm;
 using namespace std;
 using namespace stackest;
 
-StackEstimatePass::StackEstimatePass() : ModulePass(ID) {}
+StackEstimatePass *stackest::createStackEstimatePass(RegisterAllocation *alloc) {
+    return new StackEstimatePass(alloc);
+}
+
+StackEstimatePass::StackEstimatePass(RegisterAllocation *alloc) : ModulePass(ID) {
+    regalloc = alloc;
+}
 
 bool StackEstimatePass::runOnModule(Module &M) {
     llvm::errs() << "In module:" << M.getName() << "\n";
@@ -25,6 +31,7 @@ bool StackEstimatePass::runOnModule(Module &M) {
     map<string, bool> onstack;
 
     stack<string> callstack;
+    vector<Function *> roots;
 
     //Find "roots" of the callgraph and add them as first nodes to visit.
     // A root should be a node without incoming edges.
@@ -35,6 +42,7 @@ bool StackEstimatePass::runOnModule(Module &M) {
     for(auto cgn = ext->begin(); cgn != ext->end(); ++cgn) {
         if(cgn->second != nullptr && cgn->second->getNumReferences() == 1) {
             callstack.push(cgn->second->getFunction()->getName());
+            roots.push_back(cgn->second->getFunction());
         }
     }
 
@@ -51,8 +59,6 @@ bool StackEstimatePass::runOnModule(Module &M) {
 
             onstack[current] = true;
 
-            dbgs() << "Adding children of " << current << "\n";
-
             for (auto c = cgn-> begin(); c != cgn->end(); ++c) {
                 //if it doesn't call outside of the module
                 if(c->second->getFunction() != nullptr) {
@@ -67,7 +73,6 @@ bool StackEstimatePass::runOnModule(Module &M) {
             }
 
         } else if(onstack[current]) {
-            dbgs() << "Calling framesize on " << current << "\n";
 
             estimate_t currsize = framesize(M.getFunction(current));
             estimate_t childmax(0,0);
@@ -89,10 +94,9 @@ bool StackEstimatePass::runOnModule(Module &M) {
         }
     }
 
-    dbgs() << "Finished\n";
-
-    for(Function &F : M) {
-        dbgs() << F.getName() << " size min " << estimates[F.getName()].best << " max " << estimates[F.getName()].worst << "\n";
+    for(Function *F : roots) {
+        StringRef name = F->getName();
+        dbgs() << name << " size min " << estimates[name].best << " max " << estimates[name].worst << "\n";
     }
 
     return false;
@@ -102,19 +106,10 @@ estimate_t StackEstimatePass::valsize(Value *V) {
     unsigned int smin = 0;
     unsigned int smax = 0;
 
-    unsigned int size = V->getType()->getPrimitiveSizeInBits();
+    unsigned int size = RegisterAllocation::getTypeSize(V->getType());
 
-    auto valtype = V->getType();
-
-    if(auto arrtype = dyn_cast<ArrayType>(valtype)) {
-        unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
-        unsigned int arrnum = arrtype->getArrayNumElements();
-        size = elemsize * arrnum;
-    }
-
-    //TODO get exact min/max alignments (from instruction or as external params?)
-    smin = size / 8;// + AI->getAlignment()) / 8;
-    smax = size / 8;// + AI->getAlignment()) / 8;
+    smin = (size + regalloc->getMinAlign()) / 8;
+    smax = (size + regalloc->getMaxAlign()) / 8;
 
     return {smin,smax};
 }
@@ -139,19 +134,10 @@ estimate_t StackEstimatePass::framesize(Function *F) {
             }
 
             DenseSet<Value *> live = lives.get_instLive(&I);
-            //Value *[] allocated = regallocation(live);
 
-            vector<Value *> allocated;
+            DenseSet<Value *> allocated = regalloc->run(live);
 
             estimate_t current(0,0);
-
-            dbgs() << "Live in instruction:";
-            I.dump();
-            for(auto val = live.begin(); val != live.end(); ++val) {
-                dbgs() << (*val)->getName().str() << " + ";
-
-            }
-            dbgs() << "\n\n";
 
             for(auto lval : live) {
                 current.best += valsize(lval).best;
@@ -178,7 +164,3 @@ estimate_t StackEstimatePass::framesize(Function *F) {
 void StackEstimatePass::getAnalysisUsage(AnalysisUsage &AU) {
     AU.setPreservesAll();
 }
-
-char stackest::StackEstimatePass::ID = 0;
-static RegisterPass<stackest::StackEstimatePass> X("stackest", "Stack Estimation Pass", false, false);
-
