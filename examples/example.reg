@@ -1,5 +1,5 @@
-4
-int,32,8
+4 8
+int,64,8
 float,64,8
 vector,128,8
-general,32,8
+general,64,4
