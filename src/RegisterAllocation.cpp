@@ -127,15 +127,15 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
             if (reg->at(j).isEmpty) {
                 dimReg = reg->at(j).dim;
                 int k = j + 1;
-                while (dimValue && reg->at(k).dim == dimReg && k < reg->size()) {
+                while (dimValue > 0 && reg->at(k).dim == dimReg && k < reg->size()) {
                     dimValue -= dimReg;
                     k++;
                 }
-                if (dimValue < 0)
+                if (dimValue <= 0)
                     return true;
             }
         }
-        if (dimValue)
+        if (dimValue > 0)
             return false;
     }
     return false;
