@@ -126,17 +126,22 @@ bool RegisterAllocation::splitValue(Type *t, vector<vector<Register> *> &allRegi
         for (int j = 0; j < reg->size(); j++) {
             if (reg->at(j).isEmpty) {
                 dimReg = reg->at(j).dim;
-                int k = j + 1;
-                while (dimValue > 0 && reg->at(k).dim == dimReg && k < reg->size()) {
+                int k = j;
+                while (dimValue > 0 && reg->at(k).dim == dimReg && reg->at(k).isEmpty && k < reg->size()) {
                     dimValue -= dimReg;
                     k++;
                 }
-                if (dimValue <= 0)
+
+                //Trovato il primo registro vuoto gli altri vuoti della stessa dimensione saranno successivi a quello
+                //quindi i registri usati sono quelli da j (incluso) a k
+                if (dimValue <= 0) {
+                    for(;j<k;j++){
+                        reg -> at(j).isEmpty = false;
+                    }
                     return true;
+                }
             }
         }
-        if (dimValue > 0)
-            return false;
     }
     return false;
 }
