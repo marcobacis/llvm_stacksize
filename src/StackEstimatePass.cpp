@@ -20,7 +20,7 @@ StackEstimatePass::StackEstimatePass(RegisterAllocation *alloc) : ModulePass(ID)
 }
 
 bool StackEstimatePass::runOnModule(Module &M) {
-    llvm::errs() << "In module:" << M.getName() << "\n";
+    //llvm::errs() << "In module:" << M.getName() << "\n";
 
     auto *cg = new CallGraph(M);
 
@@ -94,10 +94,12 @@ bool StackEstimatePass::runOnModule(Module &M) {
         }
     }
 
-    for(Function *F : roots) {
+    dbgs() << estimates["main"].worst << "\t" << estimates["main"].best << "\n";
+
+    /*for(Function *F : roots) {
         StringRef name = F->getName();
         dbgs() << M.getName() << " " << name << " size min " << estimates[name].best << " max " << estimates[name].worst << "\n";
-    }
+    }*/
 
     return false;
 }
@@ -149,10 +151,6 @@ estimate_t StackEstimatePass::framesize(Function *F) {
 
             for(auto rval : allocated) {
                 unsigned int size = valsize(rval).best;
-                if(current.best < size) {
-                    current.best = 0;
-                    break;
-                }
                 current.best -= size;
             }
 

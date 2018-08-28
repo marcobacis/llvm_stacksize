@@ -15,6 +15,7 @@
 #include "LLvm/IR/LegacyPassManager.h"
 #include "LLvm/AsmParser/Parser.h"
 #include "LLvm/Transforms/Scalar.h"
+#include "LLvm/Transforms/Vectorize.h"
 
 
 using namespace llvm;
@@ -63,11 +64,11 @@ int main(int argc, char *argv[]) {
 
     legacy::PassManager PM;
 
-    /*PM.add(createPromoteMemoryToRegisterPass());
+    PM.add(createPromoteMemoryToRegisterPass());
     PM.add(createConstantPropagationPass());
     PM.add(createDeadCodeEliminationPass());
     PM.add(createDeadInstEliminationPass());
-    PM.add(createDeadStoreEliminationPass());*/
+    PM.add(createDeadStoreEliminationPass());
     PM.add(createLCSSAPass());
     PM.add(createStackEstimatePass(regalloc));
     PM.run(*module);

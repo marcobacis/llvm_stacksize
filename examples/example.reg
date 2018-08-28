@@ -1,5 +1,4 @@
 4 8
-int,64,8
 float,64,8
-vector,128,8
-general,64,4
+vector,128,4
+general,64,8
