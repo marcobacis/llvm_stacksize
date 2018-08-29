@@ -1,0 +1,9 @@
+999a1000,1007
+>   int alignment = (*MF).getAlignment();
+>   int StackSize = (*MF).getFrameInfo().getStackSize();
+>   int frsize = (*MF).getFrameInfo().estimateStackSize(*MF);
+>   dbgs() << "Function " << (*MF).getName()
+>          << " stack size " << StackSize
+>          << " frame size " << frsize
+>          << " align " << alignment << "\n";
+> 
