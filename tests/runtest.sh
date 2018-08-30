@@ -2,11 +2,17 @@
 
 regfile=${1-example.reg}
 
+echo -e "max\tx86\tnvidia\tarm"
+
 for i in `ls polybench/*.ll | sort -V`
 do
-    #echo ""
-    #echo $i
-    #~/ACA-P4-Stack-Size/build/main $i 2>&1
-    ../build/main $i $regfile  2>&1 > /dev/null
+    #../build/main $i $regfile  2>&1 > /dev/null
+
+    x86=($(../build/main $i example.reg 2>&1 > /dev/null | grep  -Eo '[0-9]{2,10}'))
+    nvptx=($(../build/main $i nvidia.reg 2>&1 > /dev/null | grep  -Eo '[0-9]{2,10}'))
+    arm=($(../build/main $i arm.reg 2>&1 > /dev/null | grep  -Eo '[0-9]{2,10}'))
+
+    echo -e "${x86[0]}\t${x86[1]}\t${nvptx[1]}\t${arm[1]}" 
+
 done
 
