@@ -105,12 +105,16 @@ bool StackEstimatePass::runOnModule(Module &M) {
 }
 
 estimate_t StackEstimatePass::valsize(Value *V) {
+    return typesize(V->getType());
+}
+
+estimate_t StackEstimatePass::typesize(Type *T) {
     unsigned int smin = 0;
     unsigned int smax = 0;
     unsigned int minAlign = regalloc->getMinAlignment();
     unsigned int maxAlign = regalloc->getMaxAlignment();
 
-    unsigned int size = ceil(regalloc->getTypeSize(V->getType()) / 8.0);
+    unsigned int size = ceil(regalloc->getTypeSize(T) / 8.0);
 
     smin = ceil((float)size / minAlign) * minAlign;
     smax = ceil((float)size / maxAlign) * maxAlign;
@@ -135,7 +139,8 @@ estimate_t StackEstimatePass::framesize(Function *F) {
         for (Instruction &I : BB) {
 
             if (isa<AllocaInst>(I)) {
-                estimate_t s = valsize(I.getOperand(0));
+                auto alloca = dyn_cast<AllocaInst>(&I);
+                estimate_t s = typesize(alloca->getAllocatedType());
                 salloca += s;
                 inAlloca.insert((Value *) &I);
             }
@@ -143,7 +148,7 @@ estimate_t StackEstimatePass::framesize(Function *F) {
             DenseSet<Value *> live = lives.get_instLive(&I);
 
             for(Value *val : live) {
-                //filters out alloca pointers, they are added later anyway
+                //filters out alloca pointers as they are used as offsets in the assembly
                 if (inAlloca.find(val).operator!=(inAlloca.end())) {
                     live.erase(val);
                 }

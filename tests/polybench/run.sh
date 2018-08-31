@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 
-for i in `ls *.ll | sort -V`
-do
-    #echo ""
-    #echo $i
-    #~/ACA-P4-Stack-Size/build/main $i 2>&1
-    result=($(~/llvm/build/bin/llc -O3  -march=aarch64 -mcpu=cortex-a75 $i  2>&1 > /dev/null | grep "stack size" | grep  -Eo '[0-9]{2,10}'))
-    #result=($(~/llvm/build/bin/llc -O3 -march=x86 -mcpu=skylake  $i  2>&1 > /dev/null | grep "stack size" | grep  -Eo '[0-9]{2,10}'))
-    #result=($(~/llvm/build/bin/llc -O3  -march=nvptx64 -mcpu=sm_70 $i  2>&1 > /dev/null | grep "stack size" | grep  -Eo '[0-9]{2,10}'))
 
-    in=${result[2]}
-    op=${result[4]}
+function stacksize {
+    result=($(~/llvm/build/bin/llc -O$1  -march=$2 -mcpu=$3 $4  2>&1 > /dev/null | grep "stack size" | grep  -Eo '[0-9]{2,10}'))
+    in=${result[2]-0}
+    op=${result[4]-0}
     max=$(($in>$op?$in:$op))
     echo $((${result[0]} + $max))
+}
+
+for i in `ls *.ll | sort -V`
+do
+    arm=$(stacksize 3 arm cortex-a55 $i)
+    x86=$(stacksize 3 x86-64  skylake $i)
+    nvidia=$(stacksize 0 nvptx64 sm_70 $i)
+
+    echo -e "${x86}\t${nvidia}\t${arm}" 
+
 done
 

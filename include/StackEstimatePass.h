@@ -84,6 +84,7 @@ namespace stackest {
          * @return the estimated size (best,worst) of the value (in bytes)
          */
         estimate_t valsize(Value *V);
+        estimate_t typesize(Type *T);
 
     };
 

@@ -279,8 +279,8 @@ unsigned int RegisterAllocation::getTypeSize(Type *valtype) {
 
     int size = valtype->getPrimitiveSizeInBits();
 
-    if(valtype->isPointerTy()) size = pointerSize * 8;
-    else if (auto arrtype = dyn_cast<ArrayType>(valtype)) {
+
+    if (auto arrtype = dyn_cast<ArrayType>(valtype)) {
         unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
         unsigned int arrnum = arrtype->getArrayNumElements();
         size = elemsize * arrnum;
@@ -295,7 +295,7 @@ unsigned int RegisterAllocation::getTypeSize(Type *valtype) {
         for(auto element : structype->elements())
             totsize += getTypeSize(element);
         size = totsize;
-    }
+    } else if(valtype->isPointerTy()) size = pointerSize * 8;
 
     return size;
 }
