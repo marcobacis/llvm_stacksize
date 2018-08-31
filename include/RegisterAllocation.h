@@ -40,7 +40,7 @@ public:
     int getMinAlignment() { return minAlign; };
     int getMaxAlignment() { return maxAlign; }
 
-    static unsigned int getTypeSize(Type *valtype);
+    unsigned int getTypeSize(Type *valtype);
 
 private:
     /** Values vectors used to store the (ordered) live values **/
@@ -56,7 +56,7 @@ private:
     vector<Register> regVector;
     vector<Register> regGeneral;
 
-    int minAlign, maxAlign;
+    int minAlign, maxAlign, pointerSize;
 
     DenseSet<Value *> allocated;
 

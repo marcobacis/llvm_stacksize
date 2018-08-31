@@ -2,7 +2,6 @@
 // Created by Maddalena Beccari on 20/07/18.
 //
 
-
 #include "RegisterAllocation.h"
 
 using namespace llvm;
@@ -17,7 +16,7 @@ RegisterAllocation::RegisterAllocation(StringRef filepath) {
     if (regbank.is_open()) {
 
         //reads alignments
-        regbank >> minAlign >> maxAlign;
+        regbank >> minAlign >> maxAlign >> pointerSize;
         getline(regbank, line); //end of first line
 
         while (getline(regbank, line)) {
@@ -219,17 +218,20 @@ void RegisterAllocation::divideVariable(DenseSet<Value *> liveValue) {
     //Divide the DenseSet in five vectors
     for (Value *v : liveValue) {
         Type *t = v->getType();
-        if (t->isIntegerTy() || t->isFloatingPointTy())
-            scalars.push_back(v);
-        else if (t->isStructTy())
-            structs.push_back(v);
-        else if (t->isArrayTy())
-            arrays.push_back(v);
-        else if (t->isVectorTy())
-            vectors.push_back(v);
-        else
-            other.push_back(v);
-
+        if(getTypeSize(t) > 0
+           && !(t->isLabelTy() ||  t->isEmptyTy() || t->isTokenTy() || t->isVoidTy()
+                || t->isMetadataTy())) {
+            if (t->isIntegerTy() || t->isFloatingPointTy())
+                scalars.push_back(v);
+            else if (t->isStructTy())
+                structs.push_back(v);
+            else if (t->isArrayTy())
+                arrays.push_back(v);
+            else if (t->isVectorTy())
+                vectors.push_back(v);
+            else
+                other.push_back(v);
+        }
     }
 
 
@@ -277,7 +279,8 @@ unsigned int RegisterAllocation::getTypeSize(Type *valtype) {
 
     int size = valtype->getPrimitiveSizeInBits();
 
-    if(auto arrtype = dyn_cast<ArrayType>(valtype)) {
+    if(valtype->isPointerTy()) size = pointerSize * 8;
+    else if (auto arrtype = dyn_cast<ArrayType>(valtype)) {
         unsigned int elemsize = arrtype->getArrayElementType()->getPrimitiveSizeInBits();
         unsigned int arrnum = arrtype->getArrayNumElements();
         size = elemsize * arrnum;

@@ -110,7 +110,7 @@ estimate_t StackEstimatePass::valsize(Value *V) {
     unsigned int minAlign = regalloc->getMinAlignment();
     unsigned int maxAlign = regalloc->getMaxAlignment();
 
-    unsigned int size = ceil(RegisterAllocation::getTypeSize(V->getType()) / 8.0);
+    unsigned int size = ceil(regalloc->getTypeSize(V->getType()) / 8.0);
 
     smin = ceil((float)size / minAlign) * minAlign;
     smax = ceil((float)size / maxAlign) * maxAlign;
@@ -126,6 +126,8 @@ estimate_t StackEstimatePass::framesize(Function *F) {
     LiveValues lives;
     lives.runOnFunction(*F);
 
+    DenseSet<Value *> inAlloca;
+
     for (BasicBlock &BB : *F) {
 
         estimate_t sb(0,0);
@@ -135,27 +137,34 @@ estimate_t StackEstimatePass::framesize(Function *F) {
             if (isa<AllocaInst>(I)) {
                 estimate_t s = valsize(I.getOperand(0));
                 salloca += s;
+                inAlloca.insert((Value *) &I);
             }
 
             DenseSet<Value *> live = lives.get_instLive(&I);
 
+            for(Value *val : live) {
+                //filters out alloca pointers, they are added later anyway
+                if (inAlloca.find(val).operator!=(inAlloca.end())) {
+                    live.erase(val);
+                }
+            }
+
             DenseSet<Value *> allocated = regalloc->run(live);
 
-            estimate_t current(0,0);
+            estimate_t current(0, 0);
 
-            for(auto lval : live) {
+            for (auto lval : live) {
                 estimate_t vsize = valsize(lval);
                 current.best += vsize.best;
                 current.worst += vsize.worst;
             }
 
-            for(auto rval : allocated) {
+            for (auto rval : allocated) {
                 unsigned int size = valsize(rval).best;
                 current.best -= size;
             }
 
             sb = max(sb, current);
-
         }
 
         sf = max(sf, sb);
