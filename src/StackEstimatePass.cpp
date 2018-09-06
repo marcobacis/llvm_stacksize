@@ -137,7 +137,7 @@ estimate_t StackEstimatePass::framesize(Function *F) {
         estimate_t sb(0,0);
 
         for (Instruction &I : BB) {
-
+            //for allocas, we directly insert the allocated size into the stack
             if (isa<AllocaInst>(I)) {
                 auto alloca = dyn_cast<AllocaInst>(&I);
                 estimate_t s = typesize(alloca->getAllocatedType());
@@ -147,13 +147,22 @@ estimate_t StackEstimatePass::framesize(Function *F) {
 
             DenseSet<Value *> live = lives.get_instLive(&I);
 
+            //filters out alloca pointers as they are used as offsets in the assembly
             for(Value *val : live) {
-                //filters out alloca pointers as they are used as offsets in the assembly
                 if (inAlloca.find(val).operator!=(inAlloca.end())) {
                     live.erase(val);
                 }
             }
 
+            //Force add instruction result and operands to live set
+            if(live.find((Value *) &I) == live.end())
+                live.insert((Value *) &I);
+
+            for(Value *op : I.operands())
+                if(live.find(op) == live.end())
+                    live.insert(op);
+
+            //allocates and update estimation
             DenseSet<Value *> allocated = regalloc->run(live);
 
             estimate_t current(0, 0);

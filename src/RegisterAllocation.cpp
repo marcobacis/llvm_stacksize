@@ -69,9 +69,10 @@ void RegisterAllocation::instantiateRegisters(int dim, int num, vector<Register>
 }
 
 DenseSet<Value *> RegisterAllocation::run(DenseSet<Value *> liveValue) {
+
     clearRegisterFile();
 
-    divideVariable(liveValue);
+    divideVariables(liveValue);
 
     valueAllocation();
 
@@ -85,14 +86,19 @@ void RegisterAllocation::clearRegisterFile() {
     clearRegisterType(regGeneral);
     clearRegisterType(regVector);
 
+    cleanValues();
+
+    allocated.clear();
+
+}
+
+
+void RegisterAllocation::cleanValues() {
     scalars.clear();
     other.clear();
     vectors.clear();
     arrays.clear();
     structs.clear();
-
-    allocated.clear();
-
 }
 
 void RegisterAllocation::clearRegisterType(vector<Register> &regtype) {
@@ -213,7 +219,7 @@ DenseSet<Value *> RegisterAllocation::valueAllocation() {
 
 }
 
-void RegisterAllocation::divideVariable(DenseSet<Value *> liveValue) {
+void RegisterAllocation::divideVariables(DenseSet<Value *> liveValue) {
 
     //Divide the DenseSet in five vectors
     for (Value *v : liveValue) {

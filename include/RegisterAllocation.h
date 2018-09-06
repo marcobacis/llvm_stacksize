@@ -62,13 +62,14 @@ private:
 
     DenseSet<Value *> valueAllocation();
 
+    void cleanValues();
     void clearRegisterFile();
     void clearRegisterType(vector<Register> &regtype);
 
     void parseRegisterLine(string &line);
     void instantiateRegisters(int dim, int num, vector<Register> *regbank);
 
-    void divideVariable(DenseSet<Value *> liveValue);
+    void divideVariables(DenseSet<Value *> liveValue);
 
 
     bool cmpType(Value *i, Value *j);
