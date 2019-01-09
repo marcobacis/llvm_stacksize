@@ -1,4 +1,4 @@
-## ACA project P4 - Stack size estimation
+## Stack size estimation project for the Advanced Architectures course at Politecnico di Milano, A.Y. 2017/2018
 
 The goal of this project is to give an estimate about the stack size of a program using LLVM.
 Two estimates are given:
